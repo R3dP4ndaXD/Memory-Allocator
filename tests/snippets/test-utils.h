@@ -6,8 +6,8 @@
 #include <unistd.h>
 #include <string.h>
 #include <sys/param.h>
-#include "osmem.h"
-#include "block_meta.h"
+#include "../../utils/osmem.h"
+#include "../../utils/block_meta.h"
 
 #define FAIL(assertion, feedback)										\
 	do {													\

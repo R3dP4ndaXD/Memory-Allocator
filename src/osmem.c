@@ -1,13 +1,8 @@
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <sys/mman.h>
 #include "../utils/osmem.h"
-#include "../tests/snippets/test-utils.h"
 #define MMAP_THRESHOLD (128 * 1024)
 #define PAGE_SIZE (4 * 1024)
-#define ALIGNMENT 8 // must be a power of 2
-#define ALIGN(size) (((size) + (ALIGNMENT-1)) & ~(ALIGNMENT-1))
-#define STRUCT_SIZE sizeof(struct block_meta)
 
 struct block_meta *head;
 void coalesce(struct block_meta *blk);
@@ -244,6 +239,7 @@ void *os_calloc(size_t nmemb, size_t size)
 			new->status = STATUS_FREE;
 		}
 		return (void *)best + ALIGN(STRUCT_SIZE);
+
 	}
 	p = head;
 	while (p && p->next)
@@ -287,8 +283,7 @@ void *os_realloc(void *ptr, size_t size)
 			return (void *)blk + ALIGN(STRUCT_SIZE);
 		} else if (ALIGN(size) == ALIGN(blk->size)) {
 			return ptr;
-		} else if (size > ALIGN(blk->size) && total_size < MMAP_THRESHOLD && \
-					(size_t)(sbrk(0) - (void *)blk) != ALIGN(STRUCT_SIZE) + ALIGN(blk->size)) {
+		} else if (size > ALIGN(blk->size) && total_size < MMAP_THRESHOLD && (size_t)(sbrk(0) - (void *)blk) != ALIGN(STRUCT_SIZE) + ALIGN(blk->size)) {
 			coalesce(blk);
 			if (size <= ALIGN(blk->size)) {
 				if (ALIGN(blk->size) > total_size) {
@@ -364,9 +359,8 @@ void *os_realloc(void *ptr, size_t size)
 			blk->size = size;
 			return (void *)blk + ALIGN(STRUCT_SIZE);
 		} else if (size > ALIGN(blk->size) && total_size >= MMAP_THRESHOLD) {
-			struct block_meta *aux;
+			struct block_meta *aux = (struct block_meta *)mmap(NULL, total_size, PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
 
-			aux = (struct block_meta *)mmap(NULL, total_size, PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
 			DIE(aux == (void *)-1, "eroare mmap");
 			aux->size = size;
 			aux->status = STATUS_MAPPED;
@@ -393,9 +387,8 @@ void *os_realloc(void *ptr, size_t size)
 			return (void *)ret;
 
 		} else if ((size < blk->size && total_size > MMAP_THRESHOLD) || size > blk->size) {
-			struct block_meta *aux;
+			struct block_meta *aux = (struct block_meta *)mmap(NULL, total_size, PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
 
-			aux = (struct block_meta *)mmap(NULL, total_size, PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
 			DIE(aux == (void *)-1, "eroare mmap");
 			aux->size = size;
 			aux->status = STATUS_MAPPED;

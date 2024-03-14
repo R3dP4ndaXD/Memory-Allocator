@@ -27,3 +27,6 @@ struct block_meta {
 #define STATUS_FREE   0
 #define STATUS_ALLOC  1
 #define STATUS_MAPPED 2
+
+#define ALIGN(size) (size + ((size % 8 == 0) ? 0 : 8 - size % 8))
+#define STRUCT_SIZE sizeof(struct block_meta)
